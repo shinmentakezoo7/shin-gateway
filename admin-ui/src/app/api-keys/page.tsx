@@ -58,14 +58,12 @@ export default function ApiKeysPage() {
       setApiKeys(keysData.api_keys || []);
       setModels(modelsData.models || []);
     } catch (err) {
-      if (err instanceof ApiError) {
-        showError('Failed to load API keys', err.detail);
-      }
+      console.error('Failed to load API keys:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, []);
 
   useEffect(() => {
     loadData();

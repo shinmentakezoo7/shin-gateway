@@ -130,6 +130,8 @@ class AdminDatabase:
                 check_same_thread=False
             )
             self._local.conn.row_factory = sqlite3.Row
+            # Enable foreign key enforcement
+            self._local.conn.execute("PRAGMA foreign_keys = ON")
         try:
             yield self._local.conn
         except Exception:

@@ -66,14 +66,12 @@ export default function ProvidersPage() {
       const data = await getProviders();
       setProviders(data.providers || []);
     } catch (err) {
-      if (err instanceof ApiError) {
-        showError('Failed to load providers', err.detail);
-      }
+      console.error('Failed to load providers:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, []);
 
   useEffect(() => {
     loadProviders();

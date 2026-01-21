@@ -385,8 +385,14 @@ async def create_model(
 ):
     """Create a new model alias"""
     # Verify provider exists
-    if not db.get_provider(data.provider_id):
+    provider = db.get_provider(data.provider_id)
+    if not provider:
         raise HTTPException(status_code=400, detail="Provider not found")
+
+    # Warn if provider is disabled (model won't work until enabled)
+    if not provider.enabled:
+        # Still allow creation, but the response will include a warning
+        pass
 
     model = ModelAlias(
         id=secrets.token_urlsafe(8),
@@ -401,10 +407,16 @@ async def create_model(
     try:
         created = db.create_model_alias(model)
         reload_settings()  # Reload settings so new model is available
-        return {"model": created.__dict__, "message": "Model alias created successfully"}
+
+        response = {"model": created.__dict__, "message": "Model alias created successfully"}
+        if not provider.enabled:
+            response["warning"] = f"Provider '{provider.name}' is currently disabled. Enable it for this model to work."
+        return response
     except Exception as e:
         if "UNIQUE constraint" in str(e):
             raise HTTPException(status_code=400, detail="Model alias already exists")
+        if "FOREIGN KEY constraint" in str(e):
+            raise HTTPException(status_code=400, detail="Provider not found")
         raise HTTPException(status_code=400, detail=str(e))
 
 

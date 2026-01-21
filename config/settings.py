@@ -164,6 +164,7 @@ class Settings(BaseModel):
         1. Model alias (the primary key in models dict)
         2. Model ID (matches against target_model field)
         3. Direct model name (if it matches a target_model in any config)
+        4. Dynamic routing with provider/model format (e.g., openai/gpt-4o, groq/llama-3.3-70b)
         """
         # First try direct alias lookup
         model_config = self.get_model(model_identifier)
@@ -176,6 +177,20 @@ class Settings(BaseModel):
             if config.model == model_identifier:
                 provider_config = self.get_provider(config.provider)
                 return provider_config, config
+
+        # Dynamic routing: support provider/model format (e.g., openai/gpt-4o, groq/llama-3.3-70b)
+        if "/" in model_identifier:
+            parts = model_identifier.split("/", 1)
+            if len(parts) == 2:
+                provider_name, target_model = parts
+                provider_config = self.get_provider(provider_name)
+                if provider_config:
+                    # Create a dynamic model config for this request
+                    dynamic_model_config = ModelConfig(
+                        provider=provider_name,
+                        model=target_model,
+                    )
+                    return provider_config, dynamic_model_config
 
         return None, None
 
@@ -224,6 +239,28 @@ def load_settings(config_path: Optional[Path] = None) -> Settings:
     if _settings is not None and config_path is None:
         return _settings
 
+    _settings = _load_settings_impl(config_path)
+    return _settings
+
+
+def get_settings() -> Settings:
+    """Get loaded settings (must call load_settings first)"""
+    if _settings is None:
+        return load_settings()
+    return _settings
+
+
+def reload_settings(config_path: Optional[Path] = None) -> Settings:
+    """Force reload settings atomically"""
+    global _settings
+    # Load new settings first, then swap atomically
+    new_settings = _load_settings_impl(config_path)
+    _settings = new_settings
+    return _settings
+
+
+def _load_settings_impl(config_path: Optional[Path] = None) -> Settings:
+    """Internal implementation of settings loading"""
     env = load_env_settings()
     path = config_path or env.config_path
 
@@ -251,9 +288,13 @@ def load_settings(config_path: Optional[Path] = None) -> Settings:
         # Build a mapping of provider_id -> provider_name for model alias resolution
         provider_id_to_name = {}
 
-        for provider in db.list_providers(enabled_only=True):
+        for provider in db.list_providers(enabled_only=False):  # Load ALL providers, not just enabled
             provider_name = provider.name  # Use name as provider key (user-friendly)
             provider_id_to_name[provider.id] = provider_name
+
+            # Only add enabled providers to settings
+            if not provider.enabled:
+                continue
 
             # Get API key: prefer api_key, fallback to api_key_env value or env var
             api_key = provider.api_key
@@ -288,6 +329,15 @@ def load_settings(config_path: Optional[Path] = None) -> Settings:
         for model in db.list_model_aliases(enabled_only=True):
             # Resolve provider_id to provider name
             provider_name = provider_id_to_name.get(model.provider_id, model.provider_id)
+
+            # Only add model if its provider exists in settings (is enabled)
+            if provider_name not in settings.providers:
+                import logging
+                logging.getLogger("shin-gateway").warning(
+                    f"Model alias '{model.alias}' references disabled provider '{provider_name}', skipping"
+                )
+                continue
+
             settings.models[model.alias] = ModelConfig(
                 provider=provider_name,  # Use resolved provider name
                 model=model.target_model,
@@ -300,19 +350,4 @@ def load_settings(config_path: Optional[Path] = None) -> Settings:
         import logging
         logging.getLogger("shin-gateway").warning(f"Failed to load admin database settings: {e}")
 
-    _settings = settings
-    return _settings
-
-
-def get_settings() -> Settings:
-    """Get loaded settings (must call load_settings first)"""
-    if _settings is None:
-        return load_settings()
-    return _settings
-
-
-def reload_settings(config_path: Optional[Path] = None) -> Settings:
-    """Force reload settings"""
-    global _settings
-    _settings = None
-    return load_settings(config_path)
+    return settings

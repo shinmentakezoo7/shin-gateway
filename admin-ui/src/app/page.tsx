@@ -44,14 +44,13 @@ export default function OverviewPage() {
       setLiveMetrics(liveData);
       setTimeseries(timeseriesData.timeseries || []);
     } catch (err) {
-      if (err instanceof ApiError) {
-        showError('Failed to load dashboard', err.detail);
-      }
+      // Log error without causing re-renders
+      console.error('Failed to load dashboard:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, []); // Remove showError from dependencies to prevent infinite loop
 
   useEffect(() => {
     loadData();

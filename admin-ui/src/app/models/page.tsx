@@ -62,14 +62,13 @@ export default function ModelsPage() {
       setModels(modelsData.models || []);
       setProviders(providersData.providers || []);
     } catch (err) {
-      if (err instanceof ApiError) {
-        showError('Failed to load data', err.detail);
-      }
+      // Error handling without causing re-renders
+      console.error('Failed to load data:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [showError]);
+  }, []); // Remove showError from dependencies to prevent infinite loop
 
   useEffect(() => {
     loadData();
@@ -167,7 +166,11 @@ export default function ModelsPage() {
         await updateModel(editingModel.id, data);
         success('Model Updated', `${form.alias} has been updated`);
       } else {
-        await createModel(data);
+        const result = await createModel(data);
+        if (result.warning) {
+          // Show warning toast for disabled provider
+          showError('Warning', result.warning);
+        }
         success('Model Created', `${form.alias} has been added`);
       }
 
@@ -513,7 +516,10 @@ export default function ModelsPage() {
             label="Provider"
             value={form.provider_id}
             onChange={(v) => setForm({ ...form, provider_id: v })}
-            options={providers.map((p) => ({ value: p.id, label: p.name }))}
+            options={providers.map((p) => ({
+              value: p.id,
+              label: p.enabled ? p.name : `${p.name} (disabled)`,
+            }))}
           />
           <Input
             label="Target Model"

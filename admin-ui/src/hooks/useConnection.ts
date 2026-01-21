@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { onConnectionChange, getConnectionStatus, checkHealth, HealthStatus } from '@/lib/api';
 
 export function useConnection() {
@@ -61,9 +61,13 @@ export function useAutoRefresh<T>(
   const [error, setError] = useState<Error | null>(null);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
+  // Store fetchFn in a ref to avoid re-creating the callback
+  const fetchFnRef = useRef(fetchFn);
+  fetchFnRef.current = fetchFn;
+
   const refresh = useCallback(async () => {
     try {
-      const result = await fetchFn();
+      const result = await fetchFnRef.current();
       setData(result);
       setError(null);
       setLastUpdated(new Date());
@@ -72,7 +76,7 @@ export function useAutoRefresh<T>(
     } finally {
       setLoading(false);
     }
-  }, [fetchFn]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;
@@ -100,20 +104,29 @@ export function usePolling<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<Error | null>(null);
 
+  // Store callbacks in refs to avoid re-creating the poll function
+  const fetchFnRef = useRef(fetchFn);
+  const onSuccessRef = useRef(onSuccess);
+  const onErrorRef = useRef(onError);
+
+  fetchFnRef.current = fetchFn;
+  onSuccessRef.current = onSuccess;
+  onErrorRef.current = onError;
+
   const poll = useCallback(async () => {
     try {
-      const result = await fetchFn();
+      const result = await fetchFnRef.current();
       setData(result);
       setError(null);
-      onSuccess?.(result);
+      onSuccessRef.current?.(result);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Unknown error');
       setError(error);
-      onError?.(error);
+      onErrorRef.current?.(error);
     } finally {
       setLoading(false);
     }
-  }, [fetchFn, onSuccess, onError]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) return;

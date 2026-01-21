@@ -1,7 +1,7 @@
 'use client';
 
 import * as React from 'react';
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useRef } from 'react';
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -38,6 +38,10 @@ export function useToast() {
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
+  // Use refs to store the latest functions to avoid recreating callbacks
+  const toastsRef = useRef<Toast[]>([]);
+  toastsRef.current = toasts;
+
   const removeToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
@@ -53,6 +57,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     }
   }, [removeToast]);
 
+  // Create stable function references using useMemo
   const success = useCallback((title: string, message?: string) => {
     addToast({ type: 'success', title, message });
   }, [addToast]);
@@ -69,8 +74,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     addToast({ type: 'info', title, message });
   }, [addToast]);
 
+  // Memoize the context value to prevent unnecessary re-renders
+  const contextValue = useMemo(() => ({
+    toasts,
+    addToast,
+    removeToast,
+    success,
+    error,
+    warning,
+    info,
+  }), [toasts, addToast, removeToast, success, error, warning, info]);
+
   return (
-    <ToastContext.Provider value={{ toasts, addToast, removeToast, success, error, warning, info }}>
+    <ToastContext.Provider value={contextValue}>
       {children}
       <ToastContainer toasts={toasts} onRemove={removeToast} />
     </ToastContext.Provider>

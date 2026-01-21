@@ -191,9 +191,18 @@ def create_validation_error(message: str) -> Tuple[int, Dict[str, Any]]:
 
 def create_model_not_found_error(model: str) -> Tuple[int, Dict[str, Any]]:
     """Create model not found error"""
+    # Check if user tried provider/model format with non-existent provider
+    if "/" in model:
+        provider_hint = model.split("/", 1)[0]
+        return 404, create_error_response(
+            "not_found_error",
+            f"Model '{model}' not found. Provider '{provider_hint}' is not configured. "
+            f"Available providers can be found in config.yaml or via the admin API."
+        )
     return 404, create_error_response(
         "not_found_error",
-        f"Model '{model}' not found. Check available models in configuration."
+        f"Model '{model}' not found. Use 'provider/model' format (e.g., 'openai/gpt-4o') "
+        f"or check available model aliases in configuration."
     )
 
 
