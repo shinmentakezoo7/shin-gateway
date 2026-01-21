@@ -1,0 +1,161 @@
+# Shin Gateway Configuration
+# Production-ready configuration for agentic IDE tools
+
+gateway:
+  host: "0.0.0.0"
+  port: 8080
+  require_api_key: true
+  api_key_header: "x-api-key"
+  api_keys: []  # Set via SHIN_GATEWAY_API_KEY env var
+  request_timeout: 120
+  log_level: "INFO"
+  cors_origins:
+    - "*"
+  max_request_size: 104857600  # 100MB
+
+# Retry configuration
+retry:
+  max_retries: 3
+  base_delay: 0.5
+  max_delay: 10.0
+  exponential_base: 2.0
+  jitter: true
+
+# Circuit breaker configuration
+circuit_breaker:
+  failure_threshold: 5
+  success_threshold: 2
+  timeout: 30.0
+  half_open_max_calls: 1
+
+# LLM Providers
+providers:
+  # Local Ollama instance
+  ollama_local:
+    type: openai_compat
+    base_url: "http://127.0.0.1:11434/v1"
+    api_key: null
+    timeout: 180
+    rate_limit:
+      requests_per_minute: 120
+      requests_per_second: 20
+      burst_size: 10
+
+  # Groq (fast inference)
+  groq:
+    type: litellm
+    api_key_env: GROQ_API_KEY
+    timeout: 60
+    rate_limit:
+      requests_per_minute: 30
+      requests_per_second: 2
+      burst_size: 5
+
+  # OpenAI
+  openai:
+    type: litellm
+    api_key_env: OPENAI_API_KEY
+    timeout: 120
+    rate_limit:
+      requests_per_minute: 60
+      requests_per_second: 5
+      burst_size: 10
+
+  # Anthropic (passthrough for native Claude)
+  anthropic:
+    type: anthropic
+    api_key_env: ANTHROPIC_API_KEY
+    timeout: 120
+
+# Model Aliases
+# These are the models your IDE agents will request
+models:
+  # Primary coding model - local Qwen
+  shin-coder:
+    provider: ollama_local
+    model: "qwen2.5-coder:32b"
+    context_window: 32768
+    max_output_tokens: 8192
+    defaults:
+      temperature: 0.1
+      max_tokens: 8192
+    fallbacks:
+      - provider: groq
+        model: "llama-3.3-70b-versatile"
+      - provider: openai
+        model: "gpt-4o-mini"
+
+  # Fast local model
+  shin-fast:
+    provider: ollama_local
+    model: "qwen2.5-coder:7b"
+    context_window: 32768
+    max_output_tokens: 4096
+    defaults:
+      temperature: 0.2
+      max_tokens: 4096
+    fallbacks:
+      - provider: groq
+        model: "llama-3.1-8b-instant"
+
+  # Large context model via Groq
+  shin-large:
+    provider: groq
+    model: "llama-3.3-70b-versatile"
+    context_window: 128000
+    max_output_tokens: 8192
+    defaults:
+      temperature: 0.2
+      max_tokens: 8192
+    fallbacks:
+      - provider: openai
+        model: "gpt-4o"
+
+  # High quality via OpenAI
+  shin-quality:
+    provider: openai
+    model: "gpt-4o"
+    context_window: 128000
+    max_output_tokens: 16384
+    defaults:
+      temperature: 0.3
+      max_tokens: 8192
+
+  # Mini model for quick tasks
+  shin-mini:
+    provider: openai
+    model: "gpt-4o-mini"
+    context_window: 128000
+    max_output_tokens: 16384
+    defaults:
+      temperature: 0.2
+      max_tokens: 4096
+
+  # Deepseek coder via Ollama
+  shin-deepseek:
+    provider: ollama_local
+    model: "deepseek-coder-v2:16b"
+    context_window: 65536
+    max_output_tokens: 4096
+    defaults:
+      temperature: 0.1
+      max_tokens: 4096
+
+  # Claude passthrough (if you have Anthropic API key)
+  claude-3-5-sonnet:
+    provider: anthropic
+    model: "claude-3-5-sonnet-20241022"
+    context_window: 200000
+    max_output_tokens: 8192
+
+  claude-3-5-haiku:
+    provider: anthropic
+    model: "claude-3-5-haiku-20241022"
+    context_window: 200000
+    max_output_tokens: 8192
+
+  claude-3-opus:
+    provider: anthropic
+    model: "claude-3-opus-20240229"
+    context_window: 200000
+    max_output_tokens: 4096
