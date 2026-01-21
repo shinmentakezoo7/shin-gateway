@@ -222,8 +222,14 @@ def main():
     env = load_env_settings()
     settings = load_settings(env.config_path)
 
-    # Determine if we should use uvloop
-    use_uvloop = sys.platform != "win32"
+    # Determine if we should use uvloop (only if available)
+    loop_type = "asyncio"
+    if sys.platform != "win32":
+        try:
+            import uvloop  # noqa: F401
+            loop_type = "uvloop"
+        except ImportError:
+            pass
 
     uvicorn.run(
         "main:app",
@@ -232,7 +238,7 @@ def main():
         reload=env.debug,
         log_level=settings.gateway.log_level.lower(),
         access_log=env.debug,
-        loop="uvloop" if use_uvloop else "asyncio",
+        loop=loop_type,
         http="h11",
         ws="none",
     )

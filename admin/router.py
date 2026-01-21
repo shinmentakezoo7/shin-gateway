@@ -16,6 +16,7 @@ from admin.models import (
     get_admin_db, AdminDatabase, Provider, ModelAlias, ApiKey
 )
 from admin.stats import get_stats_collector, StatsCollector
+from config.settings import reload_settings
 
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -136,6 +137,7 @@ async def create_provider(
 
     try:
         created = db.create_provider(provider)
+        reload_settings()  # Reload settings so new provider is available
         return {"provider": created.to_dict(), "message": "Provider created successfully"}
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -168,6 +170,7 @@ async def update_provider(
     if not updated:
         raise HTTPException(status_code=404, detail="Provider not found")
 
+    reload_settings()  # Reload settings so provider changes are available
     return {"provider": updated.to_dict(), "message": "Provider updated successfully"}
 
 
@@ -176,9 +179,16 @@ async def delete_provider(
     provider_id: str,
     db: AdminDatabase = Depends(get_db)
 ):
-    """Delete a provider"""
+    """Delete a provider and its associated model aliases"""
+    # First, delete all model aliases associated with this provider
+    deleted_models = db.delete_model_aliases_by_provider(provider_id)
+
+    # Then delete the provider
     if db.delete_provider(provider_id):
-        return {"message": "Provider deleted successfully"}
+        reload_settings()  # Reload settings so provider removal is reflected
+        return {
+            "message": f"Provider deleted successfully. {deleted_models} model alias(es) also removed."
+        }
     raise HTTPException(status_code=404, detail="Provider not found")
 
 
@@ -193,6 +203,7 @@ async def toggle_provider(
         raise HTTPException(status_code=404, detail="Provider not found")
 
     updated = db.update_provider(provider_id, {"enabled": not provider.enabled})
+    reload_settings()  # Reload settings so provider state change is reflected
     return {
         "provider": updated.to_dict(),
         "message": f"Provider {'enabled' if updated.enabled else 'disabled'}"
@@ -319,6 +330,9 @@ async def import_provider_models(
         except Exception as e:
             skipped.append({"model": model_id, "alias": alias, "reason": str(e)})
 
+    if created:
+        reload_settings()  # Reload settings so new models are available
+
     return {
         "created": created,
         "skipped": skipped,
@@ -339,12 +353,18 @@ async def list_models(
 ):
     """List all model aliases"""
     models = db.list_model_aliases(enabled_only=enabled_only)
+
+    # Build provider ID to name mapping for display
+    providers = db.list_providers()
+    provider_names = {p.id: p.name for p in providers}
+
     return {
         "models": [
             {
                 "id": m.id,
                 "alias": m.alias,
                 "provider_id": m.provider_id,
+                "provider_name": provider_names.get(m.provider_id, m.provider_id),
                 "target_model": m.target_model,
                 "enabled": m.enabled,
                 "default_temperature": m.default_temperature,
@@ -380,6 +400,7 @@ async def create_model(
 
     try:
         created = db.create_model_alias(model)
+        reload_settings()  # Reload settings so new model is available
         return {"model": created.__dict__, "message": "Model alias created successfully"}
     except Exception as e:
         if "UNIQUE constraint" in str(e):
@@ -392,11 +413,21 @@ async def get_model(
     model_id: str,
     db: AdminDatabase = Depends(get_db)
 ):
-    """Get model by ID or alias"""
-    model = db.get_model_alias(model_id)
+    """Get model by ID"""
+    model = db.get_model_alias_by_id(model_id)
     if not model:
         raise HTTPException(status_code=404, detail="Model not found")
-    return {"model": model.__dict__}
+
+    # Get provider name for display
+    provider = db.get_provider(model.provider_id)
+    provider_name = provider.name if provider else model.provider_id
+
+    return {
+        "model": {
+            **model.__dict__,
+            "provider_name": provider_name
+        }
+    }
 
 
 @router.patch("/models/{model_id}")
@@ -410,10 +441,16 @@ async def update_model(
     if not updates:
         raise HTTPException(status_code=400, detail="No updates provided")
 
+    # Validate provider exists if provider_id is being updated
+    if "provider_id" in updates:
+        if not db.get_provider(updates["provider_id"]):
+            raise HTTPException(status_code=400, detail="Provider not found")
+
     updated = db.update_model_alias(model_id, updates)
     if not updated:
         raise HTTPException(status_code=404, detail="Model not found")
 
+    reload_settings()  # Reload settings so model changes are available
     return {"model": updated.__dict__, "message": "Model updated successfully"}
 
 
@@ -424,8 +461,27 @@ async def delete_model(
 ):
     """Delete a model alias"""
     if db.delete_model_alias(model_id):
+        reload_settings()  # Reload settings so model removal is reflected
         return {"message": "Model deleted successfully"}
     raise HTTPException(status_code=404, detail="Model not found")
+
+
+@router.post("/models/{model_id}/toggle")
+async def toggle_model(
+    model_id: str,
+    db: AdminDatabase = Depends(get_db)
+):
+    """Toggle model alias enabled/disabled"""
+    model = db.get_model_alias_by_id(model_id)
+    if not model:
+        raise HTTPException(status_code=404, detail="Model not found")
+
+    updated = db.update_model_alias(model_id, {"enabled": not model.enabled})
+    reload_settings()  # Reload settings so model state change is reflected
+    return {
+        "model": updated.__dict__,
+        "message": f"Model {'enabled' if updated.enabled else 'disabled'}"
+    }
 
 
 # =============================================================================

@@ -156,14 +156,28 @@ class Settings(BaseModel):
         """Get model config by alias"""
         return self.models.get(alias)
 
-    def resolve_model(self, alias: str) -> tuple[Optional[ProviderConfig], Optional[ModelConfig]]:
-        """Resolve model alias to provider and model config"""
-        model_config = self.get_model(alias)
-        if not model_config:
-            return None, None
+    def resolve_model(self, model_identifier: str) -> tuple[Optional[ProviderConfig], Optional[ModelConfig]]:
+        """
+        Resolve model identifier (alias or ID) to provider and model config.
 
-        provider_config = self.get_provider(model_config.provider)
-        return provider_config, model_config
+        Supports lookup by:
+        1. Model alias (the primary key in models dict)
+        2. Model ID (matches against target_model field)
+        3. Direct model name (if it matches a target_model in any config)
+        """
+        # First try direct alias lookup
+        model_config = self.get_model(model_identifier)
+        if model_config:
+            provider_config = self.get_provider(model_config.provider)
+            return provider_config, model_config
+
+        # If not found by alias, try to find by target_model (the actual model ID)
+        for alias, config in self.models.items():
+            if config.model == model_identifier:
+                provider_config = self.get_provider(config.provider)
+                return provider_config, config
+
+        return None, None
 
 
 # =============================================================================
@@ -234,8 +248,13 @@ def load_settings(config_path: Optional[Path] = None) -> Settings:
         db = get_admin_db()
 
         # Load providers from admin database
+        # Build a mapping of provider_id -> provider_name for model alias resolution
+        provider_id_to_name = {}
+
         for provider in db.list_providers(enabled_only=True):
-            provider_name = provider.id  # Use ID as provider name
+            provider_name = provider.name  # Use name as provider key (user-friendly)
+            provider_id_to_name[provider.id] = provider_name
+
             # Get API key: prefer api_key, fallback to api_key_env value or env var
             api_key = provider.api_key
             if not api_key and provider.api_key_env:
@@ -267,8 +286,10 @@ def load_settings(config_path: Optional[Path] = None) -> Settings:
 
         # Load model aliases from admin database
         for model in db.list_model_aliases(enabled_only=True):
+            # Resolve provider_id to provider name
+            provider_name = provider_id_to_name.get(model.provider_id, model.provider_id)
             settings.models[model.alias] = ModelConfig(
-                provider=model.provider_id,  # Use provider_id to match the provider
+                provider=provider_name,  # Use resolved provider name
                 model=model.target_model,
                 defaults=ModelDefaults(
                     temperature=model.default_temperature,

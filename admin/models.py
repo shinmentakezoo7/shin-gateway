@@ -359,10 +359,32 @@ class AdminDatabase:
         return model
 
     def get_model_alias(self, alias: str) -> Optional[ModelAlias]:
-        """Get model alias by name"""
+        """Get model alias by alias name"""
         with self.get_connection() as conn:
             row = conn.execute(
                 "SELECT * FROM model_aliases WHERE alias = ?", (alias,)
+            ).fetchone()
+
+        if not row:
+            return None
+
+        return ModelAlias(
+            id=row["id"],
+            alias=row["alias"],
+            provider_id=row["provider_id"],
+            target_model=row["target_model"],
+            enabled=bool(row["enabled"]),
+            default_temperature=row["default_temperature"],
+            default_max_tokens=row["default_max_tokens"],
+            created_at=row["created_at"],
+            updated_at=row["updated_at"]
+        )
+
+    def get_model_alias_by_id(self, model_id: str) -> Optional[ModelAlias]:
+        """Get model alias by ID"""
+        with self.get_connection() as conn:
+            row = conn.execute(
+                "SELECT * FROM model_aliases WHERE id = ?", (model_id,)
             ).fetchone()
 
         if not row:
@@ -422,10 +444,10 @@ class AdminDatabase:
             )
             conn.commit()
 
-        # Fetch by id
-        row = conn.execute(
-            "SELECT * FROM model_aliases WHERE id = ?", (model_id,)
-        ).fetchone()
+            # Fetch by id - must be inside the context manager
+            row = conn.execute(
+                "SELECT * FROM model_aliases WHERE id = ?", (model_id,)
+            ).fetchone()
 
         if row:
             return ModelAlias(
@@ -449,6 +471,15 @@ class AdminDatabase:
             )
             conn.commit()
             return cursor.rowcount > 0
+
+    def delete_model_aliases_by_provider(self, provider_id: str) -> int:
+        """Delete all model aliases for a provider. Returns count of deleted models."""
+        with self.get_connection() as conn:
+            cursor = conn.execute(
+                "DELETE FROM model_aliases WHERE provider_id = ?", (provider_id,)
+            )
+            conn.commit()
+            return cursor.rowcount
 
     # =========================================================================
     # API Key CRUD

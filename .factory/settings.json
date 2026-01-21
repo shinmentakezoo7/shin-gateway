@@ -1,0 +1,81 @@
+{
+  "customModels": [
+    {
+      "model": "gpt-5.1-codex-max",
+      "displayName": "gpt-5.1-codex-max",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "GPT-5.1",
+      "displayName": "GPT-5.1",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "gpt-5.2-codex",
+      "displayName": "gpt-5.2-codex",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "gpt-5.2",
+      "displayName": "gpt-5.2",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "gpt-5.1-codex",
+      "displayName": "gpt-5.1-codex",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "gemini-claude-sonnet-4-5",
+      "displayName": "gemini-claude-sonnet-4-5",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "gemini-claude-opus-4-5-thinking",
+      "displayName": "gemini-claude-opus-4-5-thinking",
+      "baseUrl": "http://localhost:8317/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "gemini-3-pro-preview",
+      "displayName": "gemini-3-pro-preview",
+      "baseUrl": "http://localhost:8317/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "z-ai/glm4.7",
+      "displayName": "z-ai/glm4.7",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "glm-4.7",
+      "displayName": "glm-4.7",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    },
+    {
+      "model": "minimaxai/minimax-m2.1",
+      "displayName": "minimaxai/minimax-m2.1",
+      "baseUrl": "https://ysmrbrbyztki.ap-southeast-1.clawcloudrun.com/v1",
+      "apiKey": "shin",
+      "provider": "generic-chat-completion-api"
+    }
+  ]
+}

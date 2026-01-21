@@ -443,6 +443,287 @@ export default function StatisticsPage() {
         ))}
       </div>
 
+      {/* ============ LIVE DASHBOARD SECTION ============ */}
+      <div className="mb-10">
+        {/* Section Header */}
+        <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="live-dot" />
+            <h2 className="text-2xl font-bold gradient-text">Live Dashboard</h2>
+          </div>
+          <div className="flex-1 h-px bg-gradient-to-r from-white/20 via-white/5 to-transparent" />
+          {lastUpdated && (
+            <span className="text-xs text-muted-foreground">
+              Updated {lastUpdated.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+
+        {/* Live Stats Grid with Sparklines */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          {/* RPS Live Card */}
+          <div className="metric-glow rounded-2xl p-5 relative overflow-hidden">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Requests/sec</p>
+                <p className="text-4xl font-bold stat-number mt-1">{overview?.current_rps || 0}</p>
+              </div>
+              <div className="p-2 rounded-xl bg-white/5">
+                <Activity className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="sparkline-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={timeseries.slice(-20)}>
+                  <defs>
+                    <linearGradient id="sparkRps" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#ffffff" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="requests" stroke="#ffffff" strokeWidth={1.5} fill="url(#sparkRps)" isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+              <ArrowUpRight className="w-3 h-3" />
+              <span>{formatNumber(currentRPM)} RPM</span>
+            </div>
+          </div>
+
+          {/* TPS Live Card */}
+          <div className="metric-glow rounded-2xl p-5 relative overflow-hidden">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Tokens/sec</p>
+                <p className="text-4xl font-bold stat-number mt-1">{formatNumber(Math.round(avgTPS))}</p>
+              </div>
+              <div className="p-2 rounded-xl bg-white/5">
+                <Zap className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="sparkline-container">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={timeseries.slice(-20)}>
+                  <defs>
+                    <linearGradient id="sparkTps" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#999999" stopOpacity={0.3} />
+                      <stop offset="100%" stopColor="#999999" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <Area type="monotone" dataKey="tpm" stroke="#999999" strokeWidth={1.5} fill="url(#sparkTps)" isAnimationActive={false} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+              <Layers className="w-3 h-3" />
+              <span>{formatNumber(currentTPM)} TPM</span>
+            </div>
+          </div>
+
+          {/* Latency Live Card */}
+          <div className="metric-glow rounded-2xl p-5 relative overflow-hidden">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Avg Latency</p>
+                <p className="text-4xl font-bold stat-number mt-1">
+                  {usageStats?.avg_latency_ms || 0}
+                  <span className="text-lg text-muted-foreground ml-1">ms</span>
+                </p>
+              </div>
+              <div className={cn(
+                'p-2 rounded-xl',
+                (usageStats?.avg_latency_ms || 0) < 500 ? 'bg-white/10' : (usageStats?.avg_latency_ms || 0) < 1000 ? 'bg-white/5' : 'bg-white/[0.02]'
+              )}>
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="h-10 flex items-end gap-0.5">
+              {timeseries.slice(-30).map((point, i) => (
+                <div
+                  key={i}
+                  className="flex-1 bg-white/20 rounded-t transition-all duration-300"
+                  style={{ height: `${Math.min((point.requests / Math.max(...timeseries.slice(-30).map(t => t.requests || 1))) * 100, 100)}%` }}
+                />
+              ))}
+            </div>
+            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+              <Timer className="w-3 h-3" />
+              <span>{(usageStats?.avg_latency_ms || 0) < 500 ? 'Excellent' : (usageStats?.avg_latency_ms || 0) < 1000 ? 'Good' : 'Slow'}</span>
+            </div>
+          </div>
+
+          {/* Success Rate Live Card */}
+          <div className="metric-glow rounded-2xl p-5 relative overflow-hidden">
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="text-xs text-muted-foreground uppercase tracking-wider">Success Rate</p>
+                <p className="text-4xl font-bold stat-number mt-1">
+                  {usageStats?.success_rate || 0}
+                  <span className="text-lg text-muted-foreground ml-1">%</span>
+                </p>
+              </div>
+              <div className={cn(
+                'p-2 rounded-xl',
+                (usageStats?.success_rate || 0) >= 99 ? 'bg-white/10' : (usageStats?.success_rate || 0) >= 95 ? 'bg-white/5' : 'bg-white/[0.02]'
+              )}>
+                <CheckCircle className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            {/* Circular progress indicator */}
+            <div className="flex items-center justify-center h-10">
+              <div className="relative w-10 h-10">
+                <svg className="w-full h-full transform -rotate-90">
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="16"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    fill="none"
+                    className="text-white/10"
+                  />
+                  <circle
+                    cx="20"
+                    cy="20"
+                    r="16"
+                    stroke="currentColor"
+                    strokeWidth="3"
+                    fill="none"
+                    strokeDasharray={`${(usageStats?.success_rate || 0) * 1.005} 100.5`}
+                    className="text-white transition-all duration-500"
+                  />
+                </svg>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
+              <AlertTriangle className="w-3 h-3" />
+              <span>{formatNumber(usageStats?.error_count || 0)} errors</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Large Live Graph */}
+        <div className="live-graph-container p-6 scan-line">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <h3 className="text-lg font-semibold">Real-time Activity</h3>
+              <Badge variant="secondary" className="animate-glow-pulse">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  Streaming
+                </span>
+              </Badge>
+            </div>
+            <div className="flex items-center gap-4 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 bg-white rounded" />
+                <span className="text-muted-foreground">Requests</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 bg-white/50 rounded" />
+                <span className="text-muted-foreground">Tokens</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-0.5 bg-white/30 rounded" />
+                <span className="text-muted-foreground">Cost</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={timeseries}>
+                <defs>
+                  <linearGradient id="liveGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="#ffffff" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <XAxis
+                  dataKey="time"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(0 0% 40%)', fontSize: 10 }}
+                />
+                <YAxis
+                  yAxisId="left"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(0 0% 40%)', fontSize: 10 }}
+                />
+                <YAxis
+                  yAxisId="right"
+                  orientation="right"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: 'hsl(0 0% 40%)', fontSize: 10 }}
+                />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'hsl(0 0% 5%)',
+                    border: '1px solid hsl(0 0% 15%)',
+                    borderRadius: '12px',
+                    boxShadow: '0 20px 50px rgba(0,0,0,0.5)',
+                  }}
+                  labelStyle={{ color: 'hsl(0 0% 60%)' }}
+                />
+                <Area
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="requests"
+                  stroke="#ffffff"
+                  strokeWidth={2}
+                  fill="url(#liveGradient)"
+                  isAnimationActive={false}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="tpm"
+                  stroke="rgba(255,255,255,0.5)"
+                  strokeWidth={2}
+                  dot={false}
+                  isAnimationActive={false}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="cost"
+                  stroke="rgba(255,255,255,0.3)"
+                  strokeWidth={1.5}
+                  strokeDasharray="4 4"
+                  dot={false}
+                  isAnimationActive={false}
+                />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* Bottom stats bar */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6 pt-6 border-t border-white/10">
+            <div className="text-center">
+              <p className="text-2xl font-bold stat-number">{formatNumber(usageStats?.total_requests || 0)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Total Requests</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold stat-number">{formatNumber(usageStats?.total_tokens || 0)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Total Tokens</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold stat-number">${totalCost.toFixed(2)}</p>
+              <p className="text-xs text-muted-foreground mt-1">Est. Cost</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold stat-number">{tokensPerRequest}</p>
+              <p className="text-xs text-muted-foreground mt-1">Tokens/Request</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      {/* ============ END LIVE DASHBOARD SECTION ============ */}
+
       {/* Real-time Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <MetricCard
@@ -481,7 +762,7 @@ export default function StatisticsPage() {
         />
       </div>
 
-      {/* Secondary Stats Row */}
+      {/* Secondary Stats Row - Totals */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
         <MetricCard title="Total Requests" value={formatNumber(usageStats?.total_requests || 0)} icon={Activity} />
         <MetricCard title="Total Tokens" value={formatNumber(usageStats?.total_tokens || 0)} icon={Zap} />
@@ -497,6 +778,43 @@ export default function StatisticsPage() {
           value={liveMetrics?.providers?.filter((p) => p.status === 'healthy').length || 0}
           suffix={`/ ${liveMetrics?.providers?.length || 0}`}
           icon={Server}
+        />
+      </div>
+
+      {/* Per-Request Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+        <MetricCard
+          title="Tokens / Request"
+          value={formatNumber(tokensPerRequest)}
+          icon={Layers}
+          subValue={`In: ${formatNumber(inputTokensPerRequest)} / Out: ${formatNumber(outputTokensPerRequest)}`}
+        />
+        <MetricCard
+          title="Cost / Request"
+          value={`$${costPerRequest.toFixed(4)}`}
+          icon={CircleDollarSign}
+          subValue="Average cost per request"
+        />
+        <MetricCard
+          title="Current TPS"
+          value={formatNumber(Math.round(avgTPS))}
+          suffix="tok/s"
+          icon={ArrowRightLeft}
+          subValue="Tokens per second"
+        />
+        <MetricCard
+          title="Current RPS"
+          value={overview?.current_rps || 0}
+          suffix="req/s"
+          icon={Activity}
+          subValue="Requests per second"
+        />
+        <MetricCard
+          title="Input / Output Ratio"
+          value={totalOutputTokens > 0 ? (totalInputTokens / totalOutputTokens).toFixed(2) : '0'}
+          suffix=": 1"
+          icon={Hash}
+          subValue={`${formatNumber(totalInputTokens)} in / ${formatNumber(totalOutputTokens)} out`}
         />
       </div>
 
