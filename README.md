@@ -1,51 +1,145 @@
 # Shin Gateway
 
-High-performance bidirectional API translation proxy for agentic IDE tools like Claude Code, Roo Code, Cline, and Kilo Code.
+<div align="center">
 
-## Overview
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Python](https://img.shields.io/badge/python-3.11+-green.svg)
+![License](https://img.shields.io/badge/license-MIT-purple.svg)
 
-Shin Gateway provides both Anthropic Messages API and OpenAI Chat Completions API endpoints, with full bidirectional translation. This enables you to:
+**High-performance bidirectional API translation proxy for agentic IDE tools**
 
-- Use any OpenAI-compatible model with tools that expect the Anthropic API
-- Use the gateway as an OpenAI-compatible endpoint that routes to any backend
-- Mix and match providers seamlessly with a unified interface
+[Installation](./docs/installation.md) | [Usage Guide](./docs/usage.md) | [Configuration](./docs/configuration.md) | [API Reference](./docs/api-reference.md)
 
-### Key Features
+</div>
 
-- **Bidirectional Protocol Translation**: Full Anthropic ↔ OpenAI translation
-- **Dual API Endpoints**: Both `/v1/messages` (Anthropic) and `/v1/chat/completions` (OpenAI)
-- **Streaming Support**: Real-time SSE event translation with proper event sequences
-- **Tool Calling**: Complete tool/function calling translation including parallel tools
-- **Vision Support**: Image translation between Anthropic and OpenAI formats
-- **Extended Thinking**: Emulation of Anthropic's thinking blocks for other providers
-- **Multi-Provider**: Route to Ollama, Groq, OpenAI, NVIDIA, xAI, or any OpenAI-compatible endpoint
-- **Model Aliasing**: Define custom model names that map to specific providers
-- **Resilience**: Circuit breaker, rate limiting, retry with exponential backoff
-- **Agentic Optimized**: Parallel tool calls, request cancellation, context window management
-- **Token Preflight**: Validate requests won't exceed context window before sending
-- **Stream Recovery**: Checkpoint system for recovering from streaming errors
-- **Admin Dashboard**: Web UI for managing providers, models, API keys, and viewing real-time stats
-- **Usage Analytics**: Track RPM, TPM, TPS, latency percentiles, and error rates per provider/model
+---
+
+## What is Shin Gateway?
+
+Shin Gateway is a powerful API translation proxy designed for agentic IDE tools like **Claude Code**, **Roo Code**, **Cline**, and **Kilo Code**. It provides seamless bidirectional translation between Anthropic Messages API and OpenAI Chat Completions API formats.
+
+### Why Use Shin Gateway?
+
+- **Use Any Model with Any Tool**: Run Claude Code with Ollama, Groq, or any OpenAI-compatible provider
+- **Cost Optimization**: Route requests to cheaper providers while maintaining API compatibility
+- **Local Development**: Use local models (via Ollama) with tools designed for cloud APIs
+- **Provider Flexibility**: Switch providers without changing your application code
+
+## Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Bidirectional Translation** | Full Anthropic ↔ OpenAI protocol translation |
+| **Dual API Endpoints** | Both `/v1/messages` (Anthropic) and `/v1/chat/completions` (OpenAI) |
+| **Streaming Support** | Real-time SSE event translation with proper event sequences |
+| **Tool Calling** | Complete tool/function calling translation including parallel tools |
+| **Vision Support** | Image translation between Anthropic and OpenAI formats |
+| **Extended Thinking** | Emulation of Anthropic's thinking blocks for other providers |
+| **Multi-Provider** | Route to Ollama, Groq, OpenAI, NVIDIA, xAI, or any OpenAI-compatible endpoint |
+| **Model Aliasing** | Define custom model names that map to specific providers |
+| **Resilience** | Circuit breaker, rate limiting, retry with exponential backoff |
+| **Admin Dashboard** | Web UI for managing providers, models, API keys, and viewing stats |
+
+## Tech Stack
+
+### Backend
+- **FastAPI** - High-performance async Python web framework
+- **Uvicorn** - Lightning-fast ASGI server
+- **httpx** - Modern async HTTP client with HTTP/2 support
+- **Pydantic** - Data validation and settings management
+- **SQLite** - Lightweight database for admin data
+
+### Frontend (Admin UI)
+- **Next.js 16** - React framework with App Router
+- **TypeScript** - Type-safe JavaScript
+- **Tailwind CSS** - Utility-first CSS framework
+- **Radix UI** - Accessible component primitives
+- **Recharts** - Composable charting library
 
 ## Quick Start
 
-### 1. Install Dependencies
+### 1. Clone and Install
 
 ```bash
+git clone https://github.com/shinmentakezoo7/shin-gateway.git
 cd shin-gateway
 pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+### 2. Configure
 
 ```bash
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with your API keys (GROQ_API_KEY, OPENAI_API_KEY, etc.)
 ```
 
-### 3. Configure Providers
+### 3. Start the Gateway
 
-Edit `config/config.yaml` to set up your providers and model aliases:
+```bash
+python main.py
+# Or use the convenience script
+./start.sh
+```
+
+### 4. Point Your IDE Tool
+
+```bash
+export ANTHROPIC_BASE_URL=http://localhost:8082
+```
+
+That's it! Your agentic tool will now route through Shin Gateway.
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [Installation Guide](./docs/installation.md) | Detailed installation instructions for all platforms |
+| [Usage Guide](./docs/usage.md) | How to use Shin Gateway with your tools |
+| [Configuration](./docs/configuration.md) | Complete configuration reference |
+| [API Reference](./docs/api-reference.md) | Full API endpoint documentation |
+| [Architecture](./docs/architecture.md) | System architecture and design |
+| [Admin UI Guide](./docs/admin-ui.md) | Managing the gateway via web interface |
+| [Deployment](./docs/deployment.md) | Production deployment guide |
+| [Troubleshooting](./docs/troubleshooting.md) | Common issues and solutions |
+
+## Project Structure
+
+```
+shin-gateway/
+├── main.py                 # Application entry point
+├── requirements.txt        # Python dependencies
+├── config/
+│   ├── config.yaml        # Main configuration file
+│   └── settings.py        # Pydantic settings models
+├── core/                   # Core proxy functionality
+│   ├── proxy.py           # Main request handler
+│   ├── adapters/          # Protocol translation
+│   ├── handlers/          # Request handling (retry, rate limit, etc.)
+│   ├── middleware/        # FastAPI middleware
+│   └── models/            # Pydantic request/response models
+├── admin/                  # Admin API and dashboard
+│   ├── router.py          # Admin REST API
+│   ├── models.py          # Database models
+│   └── stats.py           # Statistics collector
+├── admin-ui/              # Next.js admin dashboard
+│   └── src/app/           # React pages and components
+├── data/                   # SQLite database
+└── docs/                   # Documentation
+```
+
+## Supported Providers
+
+| Provider | Type | Description |
+|----------|------|-------------|
+| **Ollama** | Local | Run open-source models locally |
+| **Groq** | Cloud | Ultra-fast inference |
+| **OpenAI** | Cloud | GPT models |
+| **Anthropic** | Cloud | Claude models (passthrough) |
+| **NVIDIA** | Cloud | NVIDIA NIM endpoints |
+| **xAI** | Cloud | Grok models |
+| **Any OpenAI-compatible** | Various | Any API following OpenAI spec |
+
+## Example Configuration
 
 ```yaml
 providers:
@@ -62,390 +156,34 @@ models:
   claude-3-5-sonnet-20241022:
     provider: groq
     model: llama-3.3-70b-versatile
-```
 
-### 4. Start the Gateway
-
-```bash
-python main.py
-```
-
-Or with uvicorn directly:
-
-```bash
-uvicorn main:app --host 0.0.0.0 --port 8082
-```
-
-### 5. Configure Your IDE Tool
-
-Point your agentic tool to the gateway:
-
-```
-ANTHROPIC_BASE_URL=http://localhost:8082
-```
-
-## Configuration
-
-### Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SHIN_CONFIG_PATH` | Path to config file | `config/config.yaml` |
-| `SHIN_LOG_LEVEL` | Log level (DEBUG, INFO, WARNING, ERROR) | `INFO` |
-| `SHIN_DEBUG` | Enable debug mode | `false` |
-| `OPENAI_API_KEY` | OpenAI API key | - |
-| `GROQ_API_KEY` | Groq API key | - |
-| `ANTHROPIC_API_KEY` | Anthropic API key (for passthrough) | - |
-
-### Provider Configuration
-
-```yaml
-providers:
-  provider_name:
-    type: openai           # Provider type (openai, anthropic)
-    base_url: "..."        # API base URL
-    api_key: "..."         # Direct API key (not recommended)
-    api_key_env: "..."     # Environment variable for API key
-    timeout: 120           # Request timeout in seconds
-    extra_headers: {}      # Additional headers
-    rate_limit:            # Optional rate limiting
-      requests_per_minute: 100
-      tokens_per_minute: 100000
-```
-
-### Model Aliases
-
-Map Anthropic model names to provider models:
-
-```yaml
-models:
-  # When client requests claude-3-5-sonnet-20241022, route to Groq
-  claude-3-5-sonnet-20241022:
-    provider: groq
-    model: llama-3.3-70b-versatile
-    defaults:
-      temperature: 0.7
-      max_tokens: 8192
-
-  # Local Ollama for coding tasks
   shin-coder:
     provider: ollama_local
     model: qwen2.5-coder:32b
-```
-
-## API Endpoints
-
-### POST /v1/messages (Anthropic Format)
-
-Main Anthropic Messages API endpoint. Accepts Anthropic-format requests and returns Anthropic-format responses.
-
-```bash
-curl -X POST http://localhost:8082/v1/messages \
-  -H "Content-Type: application/json" \
-  -H "x-api-key: your-key" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "max_tokens": 1024,
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }'
-```
-
-### POST /v1/chat/completions (OpenAI Format)
-
-OpenAI-compatible Chat Completions endpoint. Accepts OpenAI-format requests and returns OpenAI-format responses.
-
-```bash
-curl -X POST http://localhost:8082/v1/chat/completions \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer your-key" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "max_tokens": 1024,
-    "messages": [{"role": "user", "content": "Hello!"}]
-  }'
-```
-
-This endpoint supports:
-- Streaming with `"stream": true`
-- Tool/function calling
-- Vision (images in messages)
-- All OpenAI parameters (temperature, top_p, stop, etc.)
-
-### GET /v1/models
-
-List available model aliases:
-
-```bash
-curl http://localhost:8082/v1/models
-```
-
-### GET /health
-
-Liveness probe:
-
-```bash
-curl http://localhost:8082/health
-```
-
-### GET /ready
-
-Readiness probe with component status:
-
-```bash
-curl http://localhost:8082/ready
 ```
 
 ## Admin Dashboard
 
 Access the web-based admin dashboard at `http://localhost:8082/admin`
 
-### Features
-
 - **Overview**: Real-time stats, provider status, RPS/TPS metrics
-- **Providers**: Add, edit, enable/disable providers with rate limits
-- **Models**: Create and manage model aliases mapping to providers
-- **API Keys**: Generate and manage gateway API keys with per-key rate limits
-- **Statistics**: Usage analytics by provider, model, time range
+- **Providers**: Manage provider configurations
+- **Models**: Create and edit model aliases
+- **API Keys**: Generate and manage API keys
+- **Statistics**: Usage analytics and charts
 
-### Admin API Endpoints
+## Contributing
 
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/admin/` | GET | Admin dashboard UI |
-| `/admin/providers` | GET/POST | List/create providers |
-| `/admin/providers/{id}` | GET/PATCH/DELETE | Manage provider |
-| `/admin/providers/{id}/toggle` | POST | Enable/disable provider |
-| `/admin/models` | GET/POST | List/create model aliases |
-| `/admin/models/{id}` | GET/PATCH/DELETE | Manage model |
-| `/admin/api-keys` | GET/POST | List/create API keys |
-| `/admin/api-keys/{id}` | GET/PATCH/DELETE | Manage API key |
-| `/admin/api-keys/{id}/toggle` | POST | Enable/disable API key |
-| `/admin/stats/overview` | GET | Overall statistics |
-| `/admin/stats/live` | GET | Live metrics for dashboard |
-| `/admin/stats/providers` | GET | Stats by provider |
-| `/admin/stats/models` | GET | Stats by model |
-| `/admin/stats/usage` | GET | Historical usage stats |
-
-### Creating an API Key via API
-
-```bash
-curl -X POST http://localhost:8082/admin/api-keys \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Production Key",
-    "rate_limit_rpm": 100,
-    "rate_limit_tpm": 100000
-  }'
-```
-
-Response includes the API key (shown only once):
-```json
-{
-  "api_key": {...},
-  "key": "sk-shin-abc123...",
-  "message": "API key created. Save this key - it won't be shown again!"
-}
-```
-
-## Streaming
-
-The gateway fully supports Server-Sent Events (SSE) streaming with proper Anthropic event translation:
-
-```bash
-curl -X POST http://localhost:8082/v1/messages \
-  -H "Content-Type: application/json" \
-  -d '{
-    "model": "claude-3-5-sonnet-20241022",
-    "max_tokens": 1024,
-    "stream": true,
-    "messages": [{"role": "user", "content": "Count to 5"}]
-  }'
-```
-
-Events are translated from OpenAI format to Anthropic format:
-- `message_start` - Initial message with metadata
-- `content_block_start` - Start of text or tool_use block
-- `content_block_delta` - Incremental content (text_delta, input_json_delta)
-- `content_block_stop` - End of content block
-- `message_delta` - Stop reason and final usage
-- `message_stop` - Stream complete
-
-## Protocol Features
-
-Shin Gateway includes advanced protocol translation features for full Claude Code compatibility:
-
-### Vision/Image Support
-
-Automatically translates image formats between Anthropic and OpenAI:
-
-```json
-// Anthropic format (input)
-{"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": "..."}}
-
-// OpenAI format (translated)
-{"type": "image_url", "image_url": {"url": "data:image/png;base64,..."}}
-```
-
-### Extended Thinking Emulation
-
-When using the `anthropic-beta: extended-thinking-2025-01-24` header with non-Anthropic providers, the gateway emulates thinking by adding instructions to the system prompt that encourage step-by-step reasoning.
-
-### Token Preflight Checking
-
-Before sending requests, the gateway validates that the input tokens + max_tokens won't exceed the model's context window, returning a clear error if the request would fail.
-
-### Beta Features Support
-
-Supported beta features via `anthropic-beta` header:
-- `prompt-caching-2024-07-31` - Cache control blocks (stripped for non-Anthropic)
-- `extended-thinking-2025-01-24` - Thinking blocks (emulated for OpenAI)
-- `tools-2024-04-04` - Tool use support
-- `output-128k-2025-02-19` - Extended output tokens
-- `token-counting-2024-11-01` - Token counting
-
-### Metadata Passthrough
-
-User metadata is preserved across translations:
-- Anthropic `metadata.user_id` ↔ OpenAI `user` field
-- Request IDs and trace context preserved for debugging
-
-## Tool Calling
-
-Full support for parallel tool calls:
-
-```json
-{
-  "model": "claude-3-5-sonnet-20241022",
-  "max_tokens": 1024,
-  "tools": [
-    {
-      "name": "get_weather",
-      "description": "Get weather for a location",
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "location": {"type": "string"}
-        },
-        "required": ["location"]
-      }
-    }
-  ],
-  "messages": [{"role": "user", "content": "What's the weather in Tokyo?"}]
-}
-```
-
-## Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                     Agentic IDE Tool                        │
-│              (Claude Code / Roo Code / Cline)               │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ Anthropic Messages API
-                          │ or OpenAI Chat Completions API
-                          ▼
-┌─────────────────────────────────────────────────────────────┐
-│                      SHIN GATEWAY                           │
-│  ┌────────────┐  ┌────────────┐  ┌────────────────────────┐ │
-│  │ Middleware │  │  Protocol  │  │      Handlers          │ │
-│  │            │  │  Adapters  │  │                        │ │
-│  │ • RequestID│  │            │  │ • Circuit Breaker      │ │
-│  │ • Timing   │  │ Anthropic  │  │ • Rate Limiter         │ │
-│  │ • Errors   │  │    ↕       │  │ • Retry                │ │
-│  │ • Auth     │  │  OpenAI    │  │ • Cancellation         │ │
-│  │            │  │            │  │ • Token Preflight      │ │
-│  │            │  │  Protocol  │  │ • Stream Recovery      │ │
-│  │            │  │  Features  │  │ • Vision Handler       │ │
-│  └────────────┘  └────────────┘  └────────────────────────┘ │
-└─────────────────────────┬───────────────────────────────────┘
-                          │ OpenAI Chat Completions API
-          ┌───────────────┼───────────────┬───────────────┐
-          ▼               ▼               ▼               ▼
-   ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐
-   │  Ollama  │    │   Groq   │    │  OpenAI  │    │  NVIDIA  │
-   └──────────┘    └──────────┘    └──────────┘    └──────────┘
-```
-
-## Production Deployment
-
-### Docker
-
-```dockerfile
-FROM python:3.11-slim
-
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-COPY . .
-
-EXPOSE 8082
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8082"]
-```
-
-### Docker Compose
-
-```yaml
-version: '3.8'
-services:
-  shin-gateway:
-    build: .
-    ports:
-      - "8082:8082"
-    environment:
-      - GROQ_API_KEY=${GROQ_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-    volumes:
-      - ./config:/app/config:ro
-    restart: unless-stopped
-```
-
-### Performance Tuning
-
-For production, use uvloop on Linux:
-
-```bash
-pip install uvloop
-uvicorn main:app --host 0.0.0.0 --port 8082 --loop uvloop --http h11
-```
-
-## Troubleshooting
-
-### Model Not Found
-
-Ensure the model alias is defined in `config/config.yaml`:
-
-```yaml
-models:
-  your-model-alias:
-    provider: your_provider
-    model: actual-model-name
-```
-
-### Connection Errors
-
-Check provider connectivity:
-
-```bash
-# For Ollama
-curl http://localhost:11434/v1/models
-
-# For Groq
-curl -H "Authorization: Bearer $GROQ_API_KEY" https://api.groq.com/openai/v1/models
-```
-
-### Rate Limiting
-
-Configure per-provider rate limits:
-
-```yaml
-providers:
-  groq:
-    rate_limit:
-      requests_per_minute: 30
-      tokens_per_minute: 50000
-```
+Contributions are welcome! Please read our contributing guidelines before submitting PRs.
 
 ## License
 
-MIT License
+MIT License - see [LICENSE](LICENSE) for details.
+
+---
+
+<div align="center">
+
+**[Documentation](./docs/)** | **[Report Bug](https://github.com/shinmentakezoo7/shin-gateway/issues)** | **[Request Feature](https://github.com/shinmentakezoo7/shin-gateway/issues)**
+
+</div>
